@@ -51,18 +51,7 @@ SEED = 42
 # ----------------------------
 
 def find_goemotions_csv() -> Path:
-    """
-    Try to locate the GoEmotions CSV file in the data/ directory.
 
-    Returns
-    -------
-    Path
-        Path to the first existing CSV file.
-    Raises
-    ------
-    FileNotFoundError
-        If none of the candidate files can be found.
-    """
     for name in GOEMOTIONS_CANDIDATE_FILES:
         candidate = DATA_DIR / name
         if candidate.exists():
@@ -75,26 +64,7 @@ def find_goemotions_csv() -> Path:
 
 
 def prepare_labels_column(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Ensure that the DataFrame has a single integer 'label' column.
-
-    - If a 'label' column already exists, it will be used directly.
-    - Otherwise, if a 'labels' column exists, this function will
-      extract the first label from it. The 'labels' column may be:
-        * a list of ints
-        * a string representation of a list, e.g. "[3, 5]"
-        * a single int stored as string
-
-    Parameters
-    ----------
-    df : pandas.DataFrame
-        Raw dataframe loaded from CSV.
-
-    Returns
-    -------
-    pandas.DataFrame
-        Dataframe with a guaranteed integer 'label' column.
-    """
+ 
     # Case 1: 'label' already exists
     if "label" in df.columns:
         df["label"] = df["label"].astype(int)
@@ -178,13 +148,7 @@ class TextClassificationDataset(Dataset):
 
 
 def compute_metrics(pred):
-    """
-    Metric function for Hugging Face Trainer.
 
-    Computes:
-    - accuracy
-    - macro F1 score
-    """
     logits, labels = pred
     preds = np.argmax(logits, axis=1)
 

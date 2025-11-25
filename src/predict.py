@@ -1,24 +1,3 @@
-"""
-Inference script for the fine-tuned GoEmotions classifier.
-
-Usage example (from project root):
-
-    conda activate DeepLearning
-    python src/predict.py
-
-By default this script will:
-- load the fine-tuned model from:
-    results/goemotions_distilbert/final_model
-- run predictions on:
-    data/goemotions_train_full.csv
-    data/hackernews_sample_full.csv
-    data/github_flask_issues_full.csv
-- write prediction CSVs to:
-    results/pred_goemotions_train_full.csv
-    results/pred_hackernews_sample_full.csv
-    results/pred_github_flask_issues_full.csv
-"""
-
 from pathlib import Path
 from typing import List, Dict
 
@@ -95,14 +74,6 @@ def predict_for_csv(
     batch_size: int = BATCH_SIZE,
     max_length: int = MAX_LENGTH,
 ) -> None:
-    """
-    Run emotion predictions for all rows in a CSV file and
-    save the results to a new CSV.
-
-    The output CSV will contain all original columns plus:
-    - pred_label: predicted class id
-    - pred_confidence: max softmax probability for that class
-    """
     if not input_path.exists():
         print(f"[WARN] Input file not found: {input_path}")
         return

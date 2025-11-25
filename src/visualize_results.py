@@ -18,14 +18,7 @@ FIG_DIR = RESULTS_DIR / "figures"
 
 
 def extract_first_label(val: Any) -> int:
-    """
-    Extract the first integer label from the 'labels' column.
 
-    The value can be:
-    - a list of ints
-    - a string like "[27]" or "[2, 15]"
-    - a single int or string representing an int
-    """
     # Already a list
     if isinstance(val, list):
         return int(val[0]) if val else 0

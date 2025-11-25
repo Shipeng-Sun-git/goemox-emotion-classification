@@ -1,17 +1,3 @@
-"""
-Analyze in-domain performance on GoEmotions.
-
-This script expects:
-- data/goemotions_train_full.csv           (original data)
-- results/pred_goemotions_train_full.csv   (with model predictions)
-
-It will:
-- reconstruct a single gold label per sample (same as in train.py)
-- compute overall accuracy
-- compute per-label support and accuracy
-- save a summary table to results/label_stats_goemotions.csv
-"""
-
 from pathlib import Path
 from typing import Any
 
@@ -29,14 +15,7 @@ OUT_FILE = RESULTS_DIR / "label_stats_goemotions.csv"
 
 
 def extract_first_label(x: Any) -> int:
-    """
-    Take the first label from the 'labels' cell.
 
-    The value can be:
-    - a list of ints
-    - a string like "[3, 5]"
-    - a single int (int or string)
-    """
     # Already a list
     if isinstance(x, list) and len(x) > 0:
         return int(x[0])
