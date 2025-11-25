@@ -1,6 +1,7 @@
 import os
 import requests
 import pandas as pd
+import time
 from typing import Optional
 
 # Base directories
@@ -13,48 +14,109 @@ HACKERNEWS_BASE_URL = "https://hacker-news.firebaseio.com/v0"
 GITHUB_API_BASE_URL = "https://api.github.com"
 
 
+
 # ----------------------------
 # GoEmotions (main dataset)
 # ----------------------------
+
+# Hugging Face /rows endpoint allows at most 100 rows per request
+GOEMOTIONS_MAX_PAGE_SIZE = 100
+
+
+def _fetch_goemotions_page(
+    offset: int,
+    length: int,
+    split: str = "train",
+    max_retries: int = 3,
+) -> list[dict]:
+
+    for attempt in range(max_retries):
+        params = {
+            "dataset": "google-research-datasets/go_emotions",
+            "config": "simplified",
+            "split": split,
+            "offset": offset,
+            "length": length,
+        }
+
+        response = requests.get(GOEMOTIONS_API_URL, params=params, timeout=30)
+
+        # If we hit a rate limit, wait a bit and retry
+        if response.status_code == 429:
+            wait_seconds = 5 * (attempt + 1)
+            print(
+                f"Received 429 (Too Many Requests) for offset={offset}, "
+                f"length={length}. Waiting {wait_seconds} seconds before retry..."
+            )
+            time.sleep(wait_seconds)
+            continue
+
+        # Any other error should be raised
+        response.raise_for_status()
+        data = response.json()
+        rows = [row["row"] for row in data.get("rows", [])]
+        return rows
+
+    # If we are here, all retries failed due to 429 or other transient issues
+    raise RuntimeError(
+        f"Failed to fetch GoEmotions rows after {max_retries} retries "
+        f"(offset={offset}, length={length})."
+    )
+
+
 def get_goemotions_from_api(
-    limit: int = 1000,
+    limit: int = 2000,
     offset: int = 0,
     split: str = "train",
 ) -> pd.DataFrame:
-    """
-    Fetch a subset of the GoEmotions (simplified) dataset from the
-    HuggingFace Datasets Server API and return it as a pandas DataFrame.
-    """
-    params = {
-        "dataset": "google-research-datasets/go_emotions",
-        "config": "simplified",
-        "split": split,
-        "offset": offset,
-        "length": limit,
-    }
+    
+    all_rows: list[dict] = []
+    remaining = limit
+    current_offset = offset
 
-    response = requests.get(GOEMOTIONS_API_URL, params=params, timeout=30)
-    response.raise_for_status()
-    data = response.json()
+    while remaining > 0:
+        batch_size = min(GOEMOTIONS_MAX_PAGE_SIZE, remaining)
 
-    rows = [row["row"] for row in data.get("rows", [])]
-    df = pd.DataFrame(rows)
+        page_rows = _fetch_goemotions_page(
+            offset=current_offset,
+            length=batch_size,
+            split=split,
+        )
+
+        if not page_rows:
+            # No more data available from the API -> stop early
+            break
+
+        all_rows.extend(page_rows)
+        fetched = len(page_rows)
+
+        remaining -= fetched
+        current_offset += fetched
+
+        if fetched < batch_size:
+            # Fewer rows than requested means we reached the end of the dataset
+            break
+
+        # Small delay between requests to be polite to the API
+        time.sleep(0.5)
+
+    df = pd.DataFrame(all_rows)
     return df
 
 
 def save_goemotions_to_csv(
     filename: str = "goemotions_sample.csv",
-    limit: int = 1000,
+    limit: int = 2000,
 ) -> str:
-    """
-    Fetch a subset of GoEmotions and save it to a CSV file inside data/.
-    """
+    
     df = get_goemotions_from_api(limit=limit)
 
     os.makedirs(DATA_DIR, exist_ok=True)
     path = os.path.join(DATA_DIR, filename)
     df.to_csv(path, index=False)
+    print(f"Saved {len(df)} GoEmotions rows to {path}")
     return path
+
 
 
 # ----------------------------
