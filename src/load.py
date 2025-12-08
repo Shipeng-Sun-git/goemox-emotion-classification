@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 import time
 from typing import Optional
+from config import get_github_token
 
 # Base directories
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -184,16 +185,17 @@ def save_hackernews_to_csv(
 # ----------------------------
 def _get_github_headers() -> dict:
     """
-    Build HTTP headers for GitHub API.
+    Build HTTP headers for the GitHub API.
 
-    If the environment variable GITHUB_TOKEN is set, it will be used
-    for authenticated requests (better rate limits).
+    The personal access token is expected to be stored in a .env file
+    (GITHUB_TOKEN=...) and loaded via config.get_github_token().
     """
-    token: Optional[str] = os.environ.get("GITHUB_TOKEN")
+    token: Optional[str] = get_github_token()
     headers = {"Accept": "application/vnd.github+json"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
     return headers
+
 
 
 def get_github_issues_from_api(
